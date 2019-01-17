@@ -1,0 +1,153 @@
+to do-plots [distance-to-airport-belief distance-to-forest-belief distance-to-square-belief flight-time-belief flight-altitude-belief care-belief protection-belief privacy-belief picture-right-belief]
+  clear-all-plots
+
+  set-current-plot "Short distance to airport"
+  draw short-distance-to-airport distance-to-airport-belief 55
+
+  set-current-plot "Normal distance to airport"
+  draw normal-distance-to-airport distance-to-airport-belief 55
+
+  set-current-plot "Large distance to airport"
+  draw large-distance-to-airport distance-to-airport-belief 55
+
+  set-current-plot "Short distance to forest"
+  draw short-distance-to-forest distance-to-forest-belief 55
+
+  set-current-plot "Normal distance to forest"
+  draw normal-distance-to-forest distance-to-forest-belief 55
+
+  set-current-plot "Large distance to forest"
+  draw large-distance-to-forest distance-to-forest-belief 55
+
+  set-current-plot "Short distance to square"
+  draw short-distance-to-square distance-to-square-belief 55
+
+  set-current-plot "Normal distance to square"
+  draw normal-distance-to-square distance-to-square-belief 55
+
+  set-current-plot "Large distance to square"
+  draw large-distance-to-square distance-to-square-belief 55
+  
+  set-current-plot "Day flight time"
+  draw day-flight-time flight-time-belief 1440
+  
+  set-current-plot "Night flight time"
+  draw night-flight-time flight-time-belief 1440
+  
+  set-current-plot "Acceptable flight altitude"
+  draw acceptable-flight-altitude flight-altitude-belief 250
+  
+  set-current-plot "High flight altitude"
+  draw high-flight-altitude flight-altitude-belief 250
+
+  set-current-plot "Low privacy violation"
+    draw low-privacy-violation privacy-belief 100
+
+  set-current-plot "Acceptable privacy violation"
+    draw acceptable-privacy-violation privacy-belief 100
+
+  set-current-plot "High privacy violation"
+    draw high-privacy-violation privacy-belief 100
+  
+  set-current-plot "Low picture right viol."
+    draw low-picture-right-violation picture-right-belief 100
+
+  set-current-plot "Acceptable picture right viol."
+    draw acceptable-picture-right-violation picture-right-belief 100
+
+  set-current-plot "High picture right viol."
+    draw high-picture-right-violation picture-right-belief 100
+  
+  set-current-plot "Very low legality"
+    fuzzy:plot very-low-legality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-low-legality
+  
+  set-current-plot "Low legality"
+    fuzzy:plot low-legality
+    set-current-plot-pen "green"
+    fuzzy:plot R-low-legality
+
+  set-current-plot "Normal legality"
+    fuzzy:plot normal-legality
+    set-current-plot-pen "green"
+    fuzzy:plot R-normal-legality
+
+  set-current-plot "High legality"
+    fuzzy:plot high-legality
+    set-current-plot-pen "green"
+    fuzzy:plot R-high-legality
+  
+  set-current-plot "Very high legality"
+    fuzzy:plot very-high-legality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-high-legality
+  
+  set-current-plot "Aggregated Legality" fuzzy:plot legality-fuzzy-set
+  
+  set-current-plot "Very low morality"
+    fuzzy:plot very-low-morality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-low-morality
+  
+  set-current-plot "Low morality"
+    fuzzy:plot low-morality
+    set-current-plot-pen "green"
+    fuzzy:plot R-low-morality
+
+  set-current-plot "Normal morality"
+    fuzzy:plot normal-morality
+    set-current-plot-pen "green"
+    fuzzy:plot R-normal-morality
+
+  set-current-plot "High morality"
+    fuzzy:plot high-morality
+    set-current-plot-pen "green"
+    fuzzy:plot R-high-morality
+  
+  set-current-plot "Very high morality"
+    fuzzy:plot very-high-morality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-high-morality
+  
+  set-current-plot "Aggregated morality" fuzzy:plot morality-fuzzy-set 
+  
+  set-current-plot "Very low ethicality"
+    fuzzy:plot very-low-ethicality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-low-ethicality
+  
+  set-current-plot "Low ethicality"
+    fuzzy:plot low-ethicality
+    set-current-plot-pen "green"
+    fuzzy:plot R-low-ethicality
+
+  set-current-plot "Normal ethicality"
+    fuzzy:plot normal-ethicality
+    set-current-plot-pen "green"
+    fuzzy:plot R-normal-ethicality
+
+  set-current-plot "High ethicality"
+    fuzzy:plot high-ethicality
+    set-current-plot-pen "green"
+    fuzzy:plot R-high-ethicality
+  
+  set-current-plot "Very high ethicality"
+    fuzzy:plot very-high-ethicality
+    set-current-plot-pen "green"
+    fuzzy:plot R-very-high-ethicality
+  
+  set-current-plot "Aggregated ethicality" fuzzy:plot ethicality-fuzzy-set 
+
+end
+
+
+to draw [fuzzy-set v1 v2]
+  fuzzy:plot fuzzy-set
+  plot-pen-up
+  plotxy v1 0
+  plot-pen-down
+  set-plot-pen-mode 0
+  plotxy v1 (fuzzy:evaluation-of fuzzy-set v1)
+  plotxy v2 (fuzzy:evaluation-of fuzzy-set v1)
+end

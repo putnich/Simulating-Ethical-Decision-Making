@@ -1,0 +1,75 @@
+;;; Coordinate Handling
+;;; Used when absolute coordinate are to be used.
+to-report my-coordinates
+   report (list (round pxcor) (round pycor))
+end
+
+;;; reports the distance from specific coordinates
+to-report distance-coords [crds]
+  report distancexy-nowrap (first crds) (item 1 crds)
+end
+
+;;; Returns true if a turtle is at the specific destination.
+;;; The destination can be either a WHO numeric value (turtle) or
+;;; coordinates on the area. In the latter case, in order to avoid
+to-report at-dest [dest]
+ifelse any? houses-on neighbors [
+ ifelse ([who] of one-of houses-on neighbors = dest)
+    [report true]
+    [report false]
+  ] [report false]
+
+;if is-list? dest [
+; ifelse (abs (xcor - first dest) < 0.4 ) and (abs (ycor - item 1 dest) < 0.4)
+  ;  [report true]
+  ;  [report false]
+   ; ]
+  
+  ;ifelse (abs(xcor - first dest) < 1.5 ) and (abs (ycor - item 1 dest) < 1.5)
+   ; [report true]
+    ;[report false]
+end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to-report my-location
+  report patch-here
+end
+
+to set-randomly-in-space
+  let x 0
+  let y 0
+
+  loop [
+    set x random-pxcor
+    set y random-pycor
+    if not any? turtles-on patch-at x y and
+       ((x > -7 and y < -7) or (x < -7 or y > 7) or (x > 7 or y < -7) or (x > 7 or y > 7)) and
+       [passable? = true] of patch-at x y
+       [setxy x y stop]
+  ]
+end
+
+
+to set-randomly-next-to-road
+  let x 0
+  let y 0
+
+  loop [
+    set x random-pxcor
+    set y random-pycor
+    if [next-to-road > 0] of patch-at x y
+       [setxy x y stop]
+  ]
+
+end
+
+to rand-xy-co-on-road
+  let x 0
+  let y 0
+
+  loop [
+    set x random-pxcor
+    set y random-pycor
+    if not any? turtles-on patch-at x y and [road > 0] of patch-at x y [setxy x y stop]
+  ]
+end

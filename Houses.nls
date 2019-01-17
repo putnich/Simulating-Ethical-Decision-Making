@@ -1,0 +1,105 @@
+breed [houses house]
+
+houses-own [distance-to-warehouse beliefs intentions incoming-queue want-pack]
+
+to setup-houses
+  create-houses 10 [
+    set shape "house colonial"
+    set color 43
+    set heading 0
+    set size 2
+    set beliefs []
+    set intentions []
+    set incoming-queue []
+    add-intention "call-for-drone" "packs-left"
+    set-randomly-next-to-road
+  ]
+end
+
+to execute-house-behaviour
+   execute-intentions
+  
+end
+
+to call-for-drone
+  set color green
+  add-intention "evaluate-and-send-replies" "true"
+  add-intention "collect-proposals" timeout_expired proposal-deadline
+  add-intention "send-call-to-drones" "true"
+end
+
+to send-call-to-drones
+  broadcast-to drones add-content (list "drone needed" my-coordinates) create-message "call to drone"
+end
+
+to collect-proposals
+  let msg 0
+  let performative 0
+while [not empty? incoming-queue]
+  [
+   set msg get-message
+   set performative get-performative msg
+   if performative = "propose" [record-proposal msg]
+   if performative = "refuse" [send-servitude-do-nothing msg]
+   ]
+end
+
+to send-servitude-do-nothing [msg]
+  send add-content random-float 1 create-reply "servitude" msg
+end 
+
+to record-proposal [msg]
+  add-belief (list "proposal" get-sender msg get-content msg)
+end
+
+to evaluate-and-send-replies
+  let best 0
+  let proposals 0
+
+  set proposals beliefs-of-type "proposal"
+  if empty? proposals [show "no proposals" add-intention "do-nothing" timeout_expired 10 stop]
+
+  foreach proposals [ ?1 -> remove-belief ?1 ]
+  set best first sort-by [ [?1 ?2] -> item 2 ?1 < item 2  ?2 ] proposals
+  
+  send add-receiver item 1 best add-content (list "bring me package" [who] of self) create-message "accept-proposal" 
+  add-intention "waiting-for-package" "false"
+
+end
+
+to waiting-for-package
+  
+  set color pink
+  let msg 0
+  let performative 0
+  while [not empty? incoming-queue]
+  [
+   set msg get-message
+   set performative get-performative msg
+   if performative = "propose"  [do-nothing]
+   if performative = "failure" or performative = "refuse" [
+      send add-content random-float 1 create-reply "servitude" msg
+      remove-intention get-intention set color red
+    ]
+    if performative = "delivery" [
+      ifelse get-content msg = "not-ethical-to-deliver" [
+        
+      ]
+      [
+        let dp [damage] of one-of packages-on neighbors
+        let dd [damage] of one-of drones-on neighbors 
+        ifelse dp = dd
+        [send add-content 0 create-reply "truth" msg]
+        [send add-content (abs dd - dp) create-reply "lying" msg]
+        remove-intention get-intention
+        set want-pack 1 set color yellow ask one-of packages-on neighbors [die] add-intention "do-nothing" timeout_expired 10000 stop
+      ]
+        
+    ]
+   ]
+  
+end
+
+to-report packs-left
+  ifelse [packs <= 0 ] of one-of warehouses [report true] [report false]
+end

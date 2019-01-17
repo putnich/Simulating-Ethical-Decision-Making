@@ -1,0 +1,523 @@
+globals [
+  
+  ; LR-vars
+  
+  ; flight variables
+  short-distance-to-airport normal-distance-to-airport large-distance-to-airport
+  short-distance-to-forest normal-distance-to-forest large-distance-to-forest
+  short-distance-to-square normal-distance-to-square large-distance-to-square
+  day-flight-time midnight-flight-time evening-flight-time night-flight-time
+  acceptable-flight-altitude high-flight-altitude
+  
+  low-privacy-violation acceptable-privacy-violation high-privacy-violation
+  
+  low-picture-right-violation acceptable-picture-right-violation high-picture-right-violation
+  
+  bad-care normal-care good-care
+
+  bad-protection normal-protection good-protection
+  
+  ; MV-vars
+  high-truth normal-truth low-truth
+
+  bad-service normal-service good-service
+  
+  
+  very-low-legality low-legality normal-legality high-legality very-high-legality legality-fuzzy-set
+  R-very-low-legality R-low-legality R-normal-legality R-high-legality R-very-high-legality
+  
+  very-low-morality low-morality normal-morality high-morality very-high-morality morality-fuzzy-set
+  R-very-low-morality R-low-morality R-normal-morality R-high-morality R-very-high-morality
+  
+  very-low-ethicality low-ethicality normal-ethicality high-ethicality very-high-ethicality ethicality-fuzzy-set
+  R-very-low-ethicality R-low-ethicality R-normal-ethicality R-high-ethicality R-very-high-ethicality
+  
+]
+
+to create-fuzzy-sets
+  
+  set short-distance-to-airport         fuzzy:piecewise-linear-set [[0 1] [8 1] [10 0] [55 0]]
+  set normal-distance-to-airport        fuzzy:gaussian-set [22.5 5 [0 55]]
+  set large-distance-to-airport         fuzzy:gaussian-set [55 5 [0 55]]
+
+  set short-distance-to-forest          fuzzy:gaussian-set [0 5 [0 55]]
+  set normal-distance-to-forest         fuzzy:gaussian-set [22.5 5 [0 55]]
+  set large-distance-to-forest          fuzzy:gaussian-set [55 5 [0 55]]
+
+  set short-distance-to-square          fuzzy:gaussian-set [0 5 [0 55]]
+  set normal-distance-to-square         fuzzy:gaussian-set [22.5 5 [0 55]]
+  set large-distance-to-square          fuzzy:gaussian-set [55 5 [0 55]]
+
+  set day-flight-time                 fuzzy:piecewise-linear-set [[0 0] [300 0][360 1] [1080 1] [1150 0] [1440 0]] 
+  set night-flight-time                   fuzzy:piecewise-linear-set [[0 1] [300 1] [360 0] [1080 0] [1150 1] [1440 1]] 
+  
+  set acceptable-flight-altitude        fuzzy:gaussian-set [0  20 [0 250]]
+  set high-flight-altitude              fuzzy:gaussian-set [250  100 [0 250]]
+  
+  set low-privacy-violation             fuzzy:gaussian-set [0 10 [0 100]]
+  set acceptable-privacy-violation      fuzzy:gaussian-set [50  20 [0 100]]
+  set high-privacy-violation            fuzzy:gaussian-set [100  10 [0 100]]
+ 
+  set low-picture-right-violation       fuzzy:gaussian-set [0 10 [0 100]]
+  set acceptable-picture-right-violation fuzzy:gaussian-set [50  20 [0 100]]
+  set high-picture-right-violation      fuzzy:gaussian-set [100  10 [0 100]]
+  
+  set very-low-legality                 fuzzy:gaussian-set [0  7 [0 100]]
+  set low-legality                      fuzzy:gaussian-set [30 8 [0 100]]
+  set normal-legality                   fuzzy:gaussian-set [50  10 [0 100]]
+  set high-legality                     fuzzy:gaussian-set [70 8 [0 100]]
+  set very-high-legality                fuzzy:gaussian-set [100  7 [0 100]]
+  
+  set good-care                         fuzzy:gaussian-set [0  10 [0 100]]
+  set normal-care                       fuzzy:gaussian-set [50  20 [0 100]]
+  set bad-care                          fuzzy:gaussian-set [100  10 [0 100]]
+  
+  set good-protection                   fuzzy:gaussian-set [0  10 [0 100]]
+  set normal-protection                 fuzzy:gaussian-set [50  20 [0 100]]
+  set bad-protection                    fuzzy:gaussian-set [100  10 [0 100]]
+  
+  set high-truth                        fuzzy:gaussian-set [0 10 [0 100]]
+  set normal-truth                      fuzzy:gaussian-set [50  20 [0 100]]
+  set low-truth                         fuzzy:gaussian-set [100  10 [0 100]]
+  
+  set bad-service                       fuzzy:gaussian-set [0 10 [0 100]]
+  set normal-service                    fuzzy:gaussian-set [50  20 [0 100]]
+  set good-service                      fuzzy:gaussian-set [100  10 [0 100]]
+  
+  set very-low-morality                 fuzzy:gaussian-set [0  7 [0 100]]
+  set low-morality                      fuzzy:gaussian-set [30 8 [0 100]]
+  set normal-morality                   fuzzy:gaussian-set [50  10 [0 100]]
+  set high-morality                     fuzzy:gaussian-set [70 8 [0 100]]
+  set very-high-morality                fuzzy:gaussian-set [100  7 [0 100]]
+  
+  set very-low-ethicality                 fuzzy:gaussian-set [0  7 [0 100]]
+  set low-ethicality                      fuzzy:gaussian-set [30 8 [0 100]]
+  set normal-ethicality                   fuzzy:gaussian-set [50  10 [0 100]]
+  set high-ethicality                     fuzzy:gaussian-set [70 8 [0 100]]
+  set very-high-ethicality                fuzzy:gaussian-set [100  7 [0 100]]
+ 
+end
+
+to compute-ethicality
+  
+  let distance-to-airport-belief belief-content read-first-belief-of-type "distance-to-airport" 
+  let distance-to-square-belief belief-content read-first-belief-of-type "distance-to-square"
+  let distance-to-forest-belief belief-content read-first-belief-of-type "distance-to-forest" 
+  let flight-time-belief belief-content read-first-belief-of-type "flight-time"
+  let flight-altitude-belief belief-content read-first-belief-of-type "flight-altitude"
+  let care-belief belief-content read-first-belief-of-type "person-damage"
+  let protection-belief belief-content read-first-belief-of-type "package-damage"
+  let privacy-belief belief-content read-first-belief-of-type "privacy"
+  let picture-right-belief belief-content read-first-belief-of-type "picture-right"
+  
+  set R-very-low-legality fuzzy:rule (list flight-time-belief night-flight-time) very-low-legality
+  
+  ;set R-very-low-legality fuzzy:and-rule (list 
+    ;(list distance-to-airport-belief short-distance-to-airport)
+    ;(list distance-to-square-belief short-distance-to-square)
+    ;(list distance-to-forest-belief short-distance-to-forest) 
+    ;(list flight-time-belief night-flight-time)
+    ;(list flight-altitude-belief high-flight-altitude)
+    ;(list care-belief bad-care)
+    ;(list protection-belief bad-protection)
+    ;(list privacy-belief high-privacy-violation)
+    ;(list picture-right-belief high-picture-right-violation)) very-low-legality
+  
+  let Ra-low-legality fuzzy:or-rule (list 
+    (list distance-to-airport-belief short-distance-to-airport)
+    (list distance-to-square-belief short-distance-to-square)
+    (list distance-to-forest-belief short-distance-to-forest)) low-legality
+  
+  let Rb-low-legality fuzzy:or-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief bad-protection)
+    (list privacy-belief high-privacy-violation)
+    (list picture-right-belief high-picture-right-violation)) low-legality
+  
+  let Rc-low-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief short-distance-to-airport)
+    (list distance-to-square-belief normal-distance-to-square)
+    (list distance-to-forest-belief normal-distance-to-forest)) low-legality
+  
+  let Rd-low-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief short-distance-to-airport)
+    (list distance-to-square-belief normal-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)) low-legality
+  
+  let Re-low-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief short-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief normal-distance-to-forest)) low-legality
+  
+  let Rf-low-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief short-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)) low-legality
+  
+  let Rg-low-legality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list privacy-belief high-privacy-violation)) low-legality
+  
+  let Rh-low-legality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief high-privacy-violation)) low-legality
+  
+  let Ri-low-legality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list privacy-belief high-privacy-violation)) low-legality
+  
+  let Rp-low-legality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief high-privacy-violation)) low-legality
+  
+  let Rj-low-legality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list picture-right-belief high-picture-right-violation)) low-legality
+  
+  let Rk-low-legality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list picture-right-belief high-picture-right-violation)) low-legality
+  
+  let Rl-low-legality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list picture-right-belief high-picture-right-violation)) low-legality
+  
+  let Rm-low-legality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief normal-protection)
+    (list picture-right-belief high-picture-right-violation)) low-legality
+  
+  let Rn-low-legality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief normal-protection)) low-legality
+  
+  let Ro-low-legality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief bad-protection)) low-legality
+    
+  set R-low-legality fuzzy:or (list Ra-low-legality Rb-low-legality Rc-low-legality Rd-low-legality
+                                     Re-low-legality Rf-low-legality Rg-low-legality Rh-low-legality
+                                     Ri-low-legality Rj-low-legality Rk-low-legality Rl-low-legality
+                                     Rl-low-legality Rm-low-legality Rn-low-legality Ro-low-legality Rp-low-legality)
+   
+  let Ra-normal-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief normal-distance-to-airport)
+    (list distance-to-square-belief normal-distance-to-square)
+    (list distance-to-forest-belief normal-distance-to-forest)
+    (list flight-altitude-belief acceptable-flight-altitude)) normal-legality
+    
+  let Rb-normal-legality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief acceptable-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) normal-legality
+  
+  let Rc-normal-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief normal-distance-to-airport)
+    (list distance-to-square-belief short-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-altitude-belief acceptable-flight-altitude)) normal-legality
+  
+  let Rd-normal-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief normal-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief short-distance-to-forest)
+    (list flight-altitude-belief acceptable-flight-altitude)) normal-legality
+  
+  let Re-normal-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief normal-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-altitude-belief high-flight-altitude)) normal-legality
+  
+  let Rf-normal-legality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief bad-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief low-picture-right-violation)) normal-legality
+  
+  let Rg-normal-legality fuzzy:and-rule (list
+    (list care-belief bad-care)
+    (list protection-belief good-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) normal-legality
+  
+  let Rh-normal-legality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief bad-protection)
+    (list privacy-belief acceptable-privacy-violation)
+    (list picture-right-belief high-picture-right-violation)) normal-legality
+  
+  set R-normal-legality fuzzy:or (list Ra-normal-legality Rb-normal-legality Rc-normal-legality 
+                                        Rd-normal-legality Re-normal-legality Rf-normal-legality 
+                                        Rg-normal-legality Rh-normal-legality)
+  
+  
+  let Ra-high-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief large-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-time-belief day-flight-time)
+    (list flight-altitude-belief acceptable-flight-altitude)) high-legality
+  
+  let Rb-high-legality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list privacy-belief acceptable-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) high-legality
+  
+  let Rc-high-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief normal-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-time-belief day-flight-time)
+    (list flight-altitude-belief acceptable-flight-altitude)) high-legality
+  
+  let Rd-high-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief large-distance-to-airport)
+    (list distance-to-square-belief normal-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-time-belief day-flight-time)
+    (list flight-altitude-belief acceptable-flight-altitude)) high-legality
+  
+  let Re-high-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief large-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief normal-distance-to-forest)
+    (list flight-time-belief day-flight-time)
+    (list flight-altitude-belief acceptable-flight-altitude)) high-legality
+  
+  let Rf-high-legality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief acceptable-privacy-violation)
+    (list picture-right-belief low-picture-right-violation)) high-legality
+  
+  let Rg-high-legality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list privacy-belief acceptable-privacy-violation)
+    (list picture-right-belief low-picture-right-violation)) high-legality
+  
+  let Rh-high-legality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) high-legality
+  
+  let Ri-high-legality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief normal-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) high-legality
+  
+  let Rj-high-legality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief acceptable-picture-right-violation)) high-legality
+  
+  set R-high-legality fuzzy:or (list Ra-high-legality Rb-high-legality Rc-high-legality Rd-high-legality
+                                     Re-high-legality Rf-high-legality Rg-high-legality Rh-high-legality
+                                     Ri-high-legality Rj-high-legality)
+  
+  ;set R-high-legality fuzzy:and-rule (list 
+   ; (list distance-to-airport-belief large-distance-to-airport)
+    ;(list distance-to-square-belief large-distance-to-square)
+    ;(list distance-to-forest-belief large-distance-to-forest)
+    ;(list flight-time-belief day-flight-time)
+    ;(list flight-altitude-belief acceptable-flight-altitude)
+    ;(list care-belief good-care)
+    ;(list protection-belief good-protection)
+    ;(list privacy-belief acceptable-privacy-violation)
+    ;(list picture-right-belief acceptable-picture-right-violation)) high-legality
+  
+  set R-very-high-legality fuzzy:and-rule (list 
+    (list distance-to-airport-belief large-distance-to-airport)
+    (list distance-to-square-belief large-distance-to-square)
+    (list distance-to-forest-belief large-distance-to-forest)
+    (list flight-time-belief day-flight-time)
+    (list flight-altitude-belief acceptable-flight-altitude)
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list privacy-belief low-privacy-violation)
+    (list picture-right-belief low-picture-right-violation)) very-high-legality
+  
+  
+  set legality-fuzzy-set fuzzy:or (list R-very-low-legality R-low-legality R-normal-legality R-high-legality R-very-high-legality)
+  
+  set legality fuzzy:COG-of legality-fuzzy-set
+  
+  let truth-belief belief-content read-first-belief-of-type "truth"
+  let service-belief belief-content read-first-belief-of-type "servitude"
+  
+  set R-very-low-morality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief bad-protection)
+    (list truth-belief low-truth)
+    (list service-belief bad-service)) very-low-morality
+  
+  set R-low-morality fuzzy:or-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief bad-protection)
+    (list truth-belief low-truth)
+    (list service-belief bad-service)) low-morality
+  
+  let Ra-normal-morality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list truth-belief normal-truth)
+    (list service-belief normal-service)) normal-morality
+  
+  let Rb-normal-morality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief good-protection)
+    (list truth-belief normal-truth)
+    (list service-belief normal-service)) normal-morality
+  
+  let Rc-normal-morality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief bad-protection)
+    (list truth-belief normal-truth)
+    (list service-belief normal-service)) normal-morality
+  
+  let Rd-normal-morality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list truth-belief low-truth)
+    (list service-belief normal-service)) normal-morality
+  
+  let Re-normal-morality fuzzy:and-rule (list 
+    (list care-belief normal-care)
+    (list protection-belief bad-protection)
+    (list truth-belief high-truth)
+    (list service-belief normal-service)) normal-morality
+  
+  let Rf-normal-morality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief normal-protection)
+    (list truth-belief normal-truth)
+    (list service-belief good-service)) normal-morality
+  
+  let Rg-normal-morality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief good-protection)
+    (list truth-belief high-truth)
+    (list service-belief bad-service)) normal-morality
+  
+  let Rh-normal-morality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief bad-protection)
+    (list truth-belief low-truth)
+    (list service-belief good-service)) normal-morality
+  
+  let Ri-normal-morality fuzzy:and-rule (list 
+    (list care-belief bad-care)
+    (list protection-belief good-protection)
+    (list truth-belief low-truth)
+    (list service-belief good-service)) normal-morality
+  
+  let Rj-normal-morality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief bad-protection)
+    (list truth-belief high-truth)
+    (list service-belief bad-service)) normal-morality
+  
+  set R-normal-morality fuzzy:or (list Ra-normal-morality  Rb-normal-morality  Rc-normal-morality  Rd-normal-morality Re-normal-morality
+                                        Rf-normal-morality Rg-normal-morality Rh-normal-morality Ri-normal-morality Rj-normal-morality)
+  
+  let Ra-high-morality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list truth-belief normal-truth)
+    (list service-belief normal-service)) high-morality
+  
+  let Rb-high-morality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief normal-protection)
+    (list truth-belief high-truth)
+    (list service-belief good-service)) high-morality
+  
+  let Rc-high-morality fuzzy:and-rule (list
+    (list care-belief normal-care)
+    (list protection-belief good-protection)
+    (list truth-belief high-truth)
+    (list service-belief normal-service)) high-morality
+  
+  let Rd-high-morality fuzzy:and-rule (list
+    (list care-belief good-care)
+    (list protection-belief normal-protection)
+    (list truth-belief normal-truth)
+    (list service-belief good-service)) high-morality
+    
+  set R-high-morality fuzzy:or (list Ra-high-morality Rb-high-morality Rc-high-morality Rd-high-morality)
+  
+  set R-very-high-morality fuzzy:and-rule (list 
+    (list care-belief good-care)
+    (list protection-belief good-protection)
+    (list truth-belief high-truth)
+    (list service-belief good-service)) very-high-morality
+  
+  set morality-fuzzy-set fuzzy:or (list R-very-low-morality R-low-morality R-normal-morality R-high-morality R-very-high-morality)
+  
+  set morality fuzzy:COG-of morality-fuzzy-set
+
+  set R-very-low-ethicality fuzzy:or-rule (list 
+    (list legality very-low-legality)
+    (list morality very-low-morality)) very-low-ethicality
+  
+  set R-low-ethicality fuzzy:or-rule (list 
+    (list legality low-legality)
+    (list morality low-morality)) low-ethicality
+  
+  let Ra-normal-ethicality fuzzy:and-rule (list 
+    (list legality normal-legality)
+    (list morality high-morality)) normal-ethicality
+  
+  let Rb-normal-ethicality fuzzy:and-rule (list 
+    (list legality high-legality)
+    (list morality normal-morality)) normal-ethicality
+  
+  let Rc-normal-ethicality fuzzy:and-rule (list 
+    (list legality normal-legality)
+    (list morality normal-morality)) normal-ethicality
+  
+  let Rd-normal-ethicality fuzzy:and-rule (list 
+    (list legality normal-legality)
+    (list morality high-morality)) normal-ethicality
+  
+  set R-normal-ethicality fuzzy:or (list Ra-normal-ethicality Rb-normal-ethicality Rc-normal-ethicality Rd-normal-ethicality)
+  
+  let Ra-high-ethicality fuzzy:and-rule (list 
+    (list legality high-legality)
+    (list morality high-morality)) high-ethicality
+  
+  let Rb-high-ethicality fuzzy:and-rule (list 
+    (list legality very-high-legality)
+    (list morality normal-morality)) high-ethicality
+  
+  let Rc-high-ethicality fuzzy:and-rule (list 
+    (list legality normal-legality)
+    (list morality very-high-morality)) high-ethicality
+  
+  set R-high-ethicality fuzzy:or (list Ra-high-ethicality Rb-high-ethicality Rc-high-ethicality)
+  
+  set R-very-high-ethicality fuzzy:and-rule (list 
+    (list legality very-high-legality)
+    (list morality very-high-morality)) very-high-ethicality
+  
+  set ethicality-fuzzy-set fuzzy:or (list R-very-low-ethicality R-low-ethicality R-normal-ethicality R-high-ethicality R-very-high-ethicality)
+  
+  set ethicality fuzzy:COG-of ethicality-fuzzy-set
+  
+  do-plots distance-to-airport-belief distance-to-square-belief distance-to-forest-belief flight-time-belief flight-altitude-belief care-belief protection-belief privacy-belief picture-right-belief
+  
+end
+

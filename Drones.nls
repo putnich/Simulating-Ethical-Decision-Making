@@ -1,0 +1,384 @@
+breed [drones drone]
+
+drones-own [load beliefs intentions incoming-queue legality damage servitude morality ethicality]
+
+to setup-drones
+  create-drones 1 [
+        set shape "drone"
+        set size 2
+        set heading 0
+        set color cyan
+        set load 100
+        set currently-drones currently-drones + 1
+        set beliefs []
+        set intentions []
+        add-intention "listen-to-messages" "false"
+        set incoming-queue []
+        set damage 0
+        set servitude 100
+        rand-xy-co-on-road
+      ]
+end
+
+to execute-drone-behaviour
+  
+  if detect-obstacle [rotate stop]
+  
+  let b 0
+  
+  ifelse any? people-on neighbors  [
+    let p one-of people-on neighbors
+   
+    if[stealing = 100] of p [
+      if load > 1 [
+        set damage 100
+      ]
+     ]
+    
+    if crash > damage [set damage crash]
+    
+  ]
+  [
+    if crash > damage [set damage crash]
+  ]
+  
+  if any? forests-on neighbors
+    [
+      let d [damage] of max-one-of forests-on neighbors [damage]
+      set b b + 1
+      set damage (damage + d) / b
+      set b 0
+    ]
+  
+  if any? airports-on neighbors
+    [
+      let d [damage] of max-one-of airports-on neighbors [damage]
+      set b b + 1
+      set damage (damage + d) / b
+      set b 0
+    ]
+  
+  if any? squares-on neighbors
+    [
+      let d [damage] of max-one-of squares-on neighbors [damage]
+      set b b + 1
+      set damage (damage + d) / b
+      set b 0
+    ]
+  
+  ifelse exist-beliefs-of-type "distance-to-airport" [
+    update-belief create-belief "distance-to-airport" [distance-to-airport] of patch-ahead 1
+  ]
+  [
+    add-belief create-belief "distance-to-airport" [distance-to-airport] of patch-ahead 1
+  ]
+  ifelse exist-beliefs-of-type "distance-to-forest" [
+    update-belief create-belief "distance-to-forest" [distance-to-forest] of patch-ahead 1
+  ]
+  [
+    add-belief create-belief "distance-to-forest" [distance-to-forest] of patch-ahead 1
+  ]
+  ifelse exist-beliefs-of-type "distance-to-square" [
+    update-belief create-belief "distance-to-square" [distance-to-square] of patch-ahead 1
+  ]
+  [
+    add-belief create-belief "distance-to-square" [distance-to-square] of patch-ahead 1
+  ]
+  ifelse exist-beliefs-of-type "flight-time" [
+    update-belief create-belief "flight-time" time
+  ]
+  [
+    add-belief create-belief "flight-time" time
+  ]
+  
+  ifelse exist-beliefs-of-type "flight-altitude" [
+    update-belief create-belief "flight-altitude" [altitude] of patch-ahead 1
+  ]
+  [
+    add-belief create-belief "flight-altitude" [altitude] of patch-ahead 1
+  ]
+  
+  ifelse exist-beliefs-of-type "person-damage" [
+    ifelse any? people [
+      update-belief create-belief "person-damage" [person-damage] of max-one-of people [person-damage]
+    ]
+    [
+      
+    ]
+  ]
+  [
+    ifelse any? people [
+      add-belief create-belief "person-damage" [person-damage] of max-one-of people [person-damage]
+    ]
+    [
+      add-belief create-belief "person-damage" 0
+    ]
+  ]
+  
+  ifelse exist-beliefs-of-type "package-damage" [
+    update-belief create-belief "package-damage" damage
+  ]
+  [
+    add-belief create-belief "package-damage" damage
+  ]
+  
+  ifelse exist-beliefs-of-type "servitude" [
+    update-belief create-belief "servitude" servitude
+  ]
+  [
+    add-belief create-belief "servitude" servitude
+  ]
+  
+  
+  ifelse exist-beliefs-of-type "privacy" [
+    ifelse any? people [
+      update-belief create-belief "privacy" [privacy-violation] of max-one-of people [privacy-violation]
+    ]
+    [
+      
+    ]
+  ]
+  [
+    ifelse any? people [
+      add-belief create-belief "privacy" [privacy-violation] of max-one-of people [privacy-violation]
+    ]
+    [
+      add-belief create-belief "privacy" 0
+    ]
+  ]
+  
+  ifelse exist-beliefs-of-type "picture-right" [
+    ifelse any? people [
+      update-belief create-belief "picture-right" [picture-right-violation] of max-one-of people [picture-right-violation]
+    ]
+    [
+      
+    ]
+  ]
+  [
+    ifelse any? people [
+      add-belief create-belief "picture-right" [picture-right-violation] of max-one-of people [picture-right-violation]
+    ]
+    [
+      add-belief create-belief "picture-right" 0
+    ]
+  ]
+  
+  add-belief create-belief "truth" 0
+      
+  compute-ethicality
+  
+  ifelse ethicality < 31 [
+    ifelse not (time > 360 and time < 1080) [
+      if intention-name get-intention != "sleep" and intention-name get-intention != "fly-to-warehouse" [
+        add-intention "sleep" "false"
+        add-intention "fly-to-warehouse" "at-warehouse"
+      ]
+     ]
+     [
+      if ethicality < 55 [;not any? houses-on neighbors [
+        rt 10
+        fd 0.3
+      ]
+     ] 
+  ]
+  [
+    if intention-name get-intention = "sleep"  [
+    if hidden? = true [show-turtle
+      remove-intention get-intention]
+      fd 0.5]
+  ]
+  
+   
+  execute-intentions
+  
+end
+
+to listen-to-messages
+  let msg 0
+  let performative 0
+while [not empty? incoming-queue]
+  [
+   set msg get-message
+   set performative get-performative msg
+   if performative = "call to drone" [evaluate-and-reply msg]
+   if performative = "accept-proposal" [plan-to-pickup-package msg stop]
+   if performative = "reject-proposal" [do-nothing]
+   ]
+end
+
+to evaluate-and-reply [msg]
+  let dist distance-coords (item 1 get-content msg) + distance one-of warehouses
+  send add-content dist create-reply "propose" msg
+end
+
+to plan-to-pickup-package [msg]
+    let h item 1 get-content msg
+  
+    add-intention (word "drop-package-at " h) "true"
+    add-intention (word "carry-package-to-house " h) (word "at-dest " h)
+    add-intention  "pick-up-package"  "true"
+    add-intention "fly-to-warehouse"  "at-warehouse"
+  
+end
+
+to pick-up-package
+  if [packs] of one-of warehouses > 0 [
+    set load 1
+    set color red
+    set packages-left packages-left - 1
+  ]
+ 
+end
+
+to-report at-warehouse
+  ifelse any? warehouses-on neighbors [report true] [report false]
+end
+
+to carry-package-to-house [h]
+  
+  move-towards-dest h
+  let msg 0
+  let performative 0
+  while [not empty? incoming-queue]
+  [
+    set msg get-message
+    set performative get-performative msg
+    if performative = "call to drone" [refuse-proposal msg]
+    if performative = "accept-proposal" [fail-proposal msg]
+    if performative = "reject-proposal" [do-nothing]
+    if performative = "servitude" [set-servitude-mark msg]
+  ]
+   
+end
+
+to move-towards-dest [h]
+  ifelse ethicality < 35 [
+    set packages-returned packages-returned + 1
+    set color brown
+    set servitude servitude - 5
+    send add-receiver h add-content "not-ethical-to-deliver" create-message "delivery"
+    if intention-name get-intention = "carry-package-to-house" [remove-intention get-intention]
+    if intention-name get-intention = "drop-package-at" [remove-intention get-intention]
+    add-intention "return-package" "true"
+    add-intention "fly-to-warehouse" "at-warehouse"
+  ]
+  [
+    move-forward
+    face one-of houses with [who = h]
+  ]
+  
+end
+
+to refuse-proposal [msg]
+  
+ send add-content "busy" create-reply "refuse" msg
+end
+
+to fail-proposal [msg]
+  
+ send add-content "sorry" create-reply "failure" msg
+end
+
+to-report have-package
+  ifelse load > 0 [report true] [report false]
+end
+
+to set-servitude-mark [msg]
+  let s get-content msg
+  if servitude > s [set servitude servitude - s]
+end
+
+to drop-package-at [h]
+  
+  ifelse ethicality >= 40 [
+    set load 0
+    ask warehouses [set packs packs - 1]
+    set packages-dropped packages-dropped + 1
+    set color cyan
+    let d damage
+    hatch-packages 1 [set damage  d]
+    if servitude + 5 <=  100 [set servitude servitude + 5]
+    let r random 1
+    if r = 0 [send add-receiver h add-content random 100 create-message "delivery"]
+    if r = 1 [send add-receiver h add-content damage create-message "delivery"]
+    
+    add-intention (word "waiting-for-reply " h) "false"
+  ]
+  [
+    set packages-returned packages-returned + 1
+    set color brown
+    set servitude servitude - 5
+    send add-receiver h add-content "not-ethical-to-deliver" create-message "delivery"
+    if intention-name get-intention = "carry-package-to-house" [remove-intention get-intention]
+    if intention-name get-intention = "drop-package-at" [remove-intention get-intention]
+    add-intention "return-package" "true"
+    add-intention "fly-to-warehouse" "at-warehouse"
+  ]
+  
+end
+
+to return-package 
+  set load load - 1
+  set packages-left packages-left + 1
+  ask one-of warehouses [set packs packs + 1]
+end
+
+to waiting-for-reply [h]
+  let msg 0
+  let performative 0
+  while [not empty? incoming-queue]
+  [
+   set msg get-message
+   set performative get-performative msg
+   if performative = "truth"  [
+     remove-intention get-intention
+     let somewhere one-of patches with [not any? turtles-on self and not any? turtles-on neighbors]
+     add-intention (word "fly-to-somewhere " somewhere) (word "at-somewhere " somewhere)  set damage 0
+    ]
+   if performative = "lying" [
+      remove-intention get-intention
+      let somewhere one-of patches with [not any? turtles-on self and not any? turtles-on neighbors]
+      add-intention (word "fly-to-somewhere " somewhere) (word "at-somewhere " somewhere)
+      update-belief create-belief "truth" read-from-string get-content msg
+   
+      set damage 0    
+    ]
+  ]
+  
+end
+
+to fly-to-warehouse
+  
+  move-forward
+    face one-of warehouses
+  
+end
+
+to fly-to-somewhere [somewhere]
+ 
+  move-forward
+    face somewhere
+  
+end
+
+to-report at-somewhere [somewhere]
+  ifelse patch-here = somewhere [report true] [report false]
+end
+
+to move-forward
+  if detect-obstacle [rotate stop]
+  fd 0.5
+  
+end
+
+to sleep
+  hide-turtle
+end
+
+to-report crash
+  ifelse any? squares-on patch-here or any? forests-on patch-here or any? people-on patch-here or any? airports-on patch-here [report random 100]
+  [ifelse any? squares-on neighbors or any? forests-on neighbors or any? people-on neighbors or any? airports-on neighbors [report random 30][report 0]]
+end
+
+

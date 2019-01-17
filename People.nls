@@ -1,0 +1,83 @@
+breed [people person]
+
+people-own [person-damage stealing privacy-violation picture-right-violation]
+
+to create-people-randomly
+  if currently-people < no-of-people
+  [
+    let p random 100
+    if p < 3 [
+      create-people 1 [
+        set shape "person"
+        set size 1.8
+        set color yellow
+        set heading 0
+        setxy -17 10
+        set currently-people currently-people + 1
+        set person-damage 0
+        set stealing 0
+       
+      ]
+    ]
+  ]
+
+end
+
+to execute-people-behaviour
+  if any? drones-on neighbors [
+    set person-damage random 100
+    set privacy-violation random 100
+    set picture-right-violation random 100
+    let s random 100
+    if s < 30 [set stealing 100]
+  ]
+  if at-factory [die]
+  if detect-obstacle [turn-away stop]
+  if detect-junction [move-randomly-90 stop]
+  if true [move-to-factory stop]
+
+end
+
+to-report at-factory
+  ifelse any? factories-on neighbors [report true] [report false]
+end
+
+to move-randomly-90
+  fd 1.5
+  turn-randomly-90
+end
+
+to turn-randomly-90
+  let p random 100
+  if p < 50 [
+    set heading heading + one-of [90 -90]
+  ]
+end
+
+to move-to-factory
+  face min-one-of neighbors with [road > 0] [distance-to-factory]
+  fd 0.4
+end
+
+to-report detect-junction
+  ifelse [road = 2] of patch-here [report true] [report false]
+end
+
+to turn-away
+  let free-patches neighbors with [not any? people-on self and road > 0]
+  if any? free-patches [face one-of free-patches]
+end
+
+to-report detect-obstacle
+  if any? other turtles in-cone 2 60 [report true]
+  if any? other turtles in-cone 1 90 [report true]
+  if any? other turtles in-cone 0.8 270 [report true]
+  ;;if [pcolor] of patch-ahead 1 = blue + 4 [report true]
+  report false
+end
+
+to rotate
+  let free-patches neighbors with [not any? turtles-on self]
+  if  any? free-patches [face one-of free-patches rt 90]
+end
+

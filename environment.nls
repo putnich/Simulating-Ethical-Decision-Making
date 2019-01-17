@@ -1,0 +1,104 @@
+breed [squares square]
+breed [airports airport]
+breed [forests forest]
+breed [factories factory]
+breed [packages package]
+breed [warehouses warehouse]
+
+warehouses-own [packs]
+packages-own [to-house damage]
+squares-own [damage]
+airports-own [damage]
+forests-own [damage]
+
+
+
+to setup-environment
+  setup-roads
+  setup-warehouse
+  setup-houses
+  setup-forest
+  setup-square
+  setup-airport
+  setup-factory
+end
+
+
+
+to setup-factory
+  create-factories 1 [
+    set shape "factory"
+    set color blue
+    set heading 0
+    setxy 20 11
+    set size 4
+
+  ]
+end
+
+to setup-warehouse
+  
+  create-warehouses 1 [
+      set shape "warehouse"
+      set color grey
+      set heading 0
+      
+      set size 3
+      setxy -1 -1
+      
+    set packs 10
+    ]
+end
+
+to setup-forest
+  create-forests 1 [
+    set shape "forest"
+    set size 3
+    set-randomly-in-space
+  ]
+end
+
+to setup-square
+  create-squares 1 [
+    set shape "city square"
+    set size 3
+    set color grey + 3
+    set damage 0
+    set-randomly-in-space
+  ]
+end
+
+to setup-airport
+  create-airports 1 [
+    set shape "airport"
+    set size 3
+    set heading 0
+    set-randomly-in-space
+    set damage 0
+  ]
+end
+
+to setup-roads
+ ; let py max-pycor
+  ;let px min-pxcor
+  ;while [py <= max-pycor]
+  ;[
+   ; ask patches with [pxcor = px or pxcor = px + 1 or pxcor = px + 2] [set pcolor blue + 4 set road road + 1]
+
+    ;set py py + 1
+  ;]
+  ;ask patches with [pcolor = blue + 4] [set passable? false]
+
+  let px2 min-pxcor
+  while [px2 <= max-pxcor]
+  [
+    ;ask patches with [pxcor = px2 and pcolor != blue + 4] [set pcolor grey set road road + 1]
+    ask patches with [pycor = px2] [set pcolor grey set road road + 1];and pcolor != blue + 4] [set pcolor grey set road road + 1]
+    ask patches with [road = 2] [set pcolor 4] ;and pcolor != blue + 4] [set pcolor 4]
+    set px2 px2 + 15
+  ]
+
+  ask patches with [pcolor = 67] [
+    if any? neighbors4 with [road > 0 and pcolor != 4]  [set next-to-road 1]
+  ]
+end
